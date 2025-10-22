@@ -18,8 +18,10 @@ led = GroveLED(led_pin)
 while True:
     try:
         led.on()
+        print("LED ON")
         time.sleep(1)
         led.off()
+        print("LED OFF")
         time.sleep(1)
 
     except KeyboardInterrupt:
