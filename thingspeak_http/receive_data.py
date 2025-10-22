@@ -1,7 +1,7 @@
-# Channel ID: 3125997
+# Channel ID: 3127848
 # Author: toltalbiuh
-# API Key (Write): GWIECJSRB36N2SXJ
-# API Key (Read): L83C8R1J5XYDS7G7
+# API Key (Write): AHHO5UL59ZCYUYCV
+# API Key (Read): N251PNZ5EG0MWI2Y
 
 from urllib import request, parse
 from time import sleep

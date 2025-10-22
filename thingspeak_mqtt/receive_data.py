@@ -2,10 +2,10 @@ import paho.mqtt.client as mqtt
 from time import sleep
 from random import randint
 
-CLIENT_ID = "AxYcMR0HLBEmFB8qATYiEjk"
-USERNAME  = "AxYcMR0HLBEmFB8qATYiEjk"
-PASSWORD  = "Y8+GZ1Dnp8QRpb1+MftJDKgI"
-CHANNEL_ID = "3125997"
+CLIENT_ID = "NjE5OhMqHw49ByYbNC8zCDg"
+USERNAME  = "NjE5OhMqHw49ByYbNC8zCDg"
+PASSWORD  = "4RMD5Zo/J+Yf0AaiCTNunImo"
+CHANNEL_ID = "3127848"
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with Result code {}".format(rc))
