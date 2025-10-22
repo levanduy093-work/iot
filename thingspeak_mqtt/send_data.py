@@ -5,34 +5,21 @@ from random import randint
 
 CLIENT_ID = "KAwYFzoPHwIFPToMJiEADAc"
 USERNAME  = "KAwYFzoPHwIFPToMJiEADAc"
-PASSWORD  = "9EyhBPHUdp6QAkhBAzFQY/fW"
+PASSWORD  = "9JvV/XpKIGP4ooYqCM/0UxjR"
 CHANNEL_ID = "3125997"
 
 # Quan trọng: dùng keyword client_id=... (không truyền positional)
-client = mqtt.Client(client_id=CLIENT_ID, protocol=mqtt.MQTTv311)
+client = mqtt.Client(CLIENT_ID)
 client.username_pw_set(username=USERNAME, password=PASSWORD)
 
 # Thingspeak MQTT3 (TCP 1883). Nếu dùng TLS: port 8883 + client.tls_set()
 client.connect("mqtt3.thingspeak.com", 1883, 60)
 
-# Chạy vòng lặp mạng trong thread nền
-client.loop_start()
+def thingspeak_mqtt(data):
+    client.publish(f"channels/{CHANNEL_ID}/publish", f"field3={data}&status=MQTTPUBLISH")
 
-def thingspeak_mqtt(value):
-    topic = f"channels/{CHANNEL_ID}/publish"
-    payload = f"field3={value}&status=MQTTPUBLISH"
-    # QoS 0 là đủ cho ThingSpeak
-    client.publish(topic, payload, qos=0)
-
-try:
-    while True:
-        v = randint(0, 50)
-        print(v)
-        thingspeak_mqtt(v)
-        sleep(20)
-
-except KeyboardInterrupt:
-    pass
-finally:
-    client.loop_stop()
-    client.disconnect()
+while True:
+    random_value = randint(0, 50)
+    print(f"Publishing value: {random_value}")
+    thingspeak_mqtt(random_value)
+    sleep(20)  # ThingSpeak yêu cầu tối thiểu 15 giây giữa các lần gửi dữ liệu
