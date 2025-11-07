@@ -5,17 +5,30 @@ from seeed_dht import DHT
 
 # Channel ID: 3127848
 # Author: mwa0000039454674
-CLIENT_ID = "IQYGJxEjIxMmMxAzJSw1ISs"
-USERNAME  = "IQYGJxEjIxMmMxAzJSw1ISs"
-PASSWORD  = "aMJjEGryTWE/mhhIDZB7SKLD"
+CLIENT_ID = "Dg0MFSkPJAIJMgchHjw1BwY"
+USERNAME  = "Dg0MFSkPJAIJMgchHjw1BwY"
+PASSWORD  = "8p9YF6bT68Hxjny5ChF13Vrm"
 CHANNEL_ID = "3127848"
+
+# Callback functions
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        print("✓ Đã kết nối MQTT broker thành công")
+    else:
+        print(f"✗ Kết nối MQTT thất bại với code: {rc}")
+
+def on_publish(client, userdata, mid):
+    print(f"  → Message ID {mid} đã được gửi")
 
 # Quan trọng: dùng keyword client_id=... (không truyền positional)
 client = mqtt.Client(client_id=CLIENT_ID)
 client.username_pw_set(username=USERNAME, password=PASSWORD)
+client.on_connect = on_connect
+client.on_publish = on_publish
 
 # Thingspeak MQTT3 (TCP 1883). Nếu dùng TLS: port 8883 + client.tls_set()
 client.connect("mqtt3.thingspeak.com", 1883, 60)
+client.loop_start()  # Bắt đầu network loop trong background thread
 
 def thingspeak_mqtt(temp, humi):
     client.publish(f"channels/{CHANNEL_ID}/publish", f"field3={temp}&field4={humi}&status=MQTTPUBLISH")
@@ -69,8 +82,18 @@ def main():
             print(f'Đang gửi qua MQTT: Temp={avg_temp:.2f}, Humi={avg_humi:.2f}')
             thingspeak_mqtt(avg_temp, avg_humi)
             print(f'Đã gửi dữ liệu qua MQTT')
+            
+            # Chờ một chút để đảm bảo MQTT message được gửi đi
+            sleep(1)
         else:
             print('\nKhông có dữ liệu hợp lệ để gửi')
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\nChương trình đã dừng")
+    finally:
+        client.loop_stop()
+        client.disconnect()
+        print("Đã ngắt kết nối MQTT")

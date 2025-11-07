@@ -3,9 +3,9 @@ import paho.mqtt.client as mqtt
 from time import sleep
 from random import randint
 
-CLIENT_ID = "BAwPPDYtETwNHRsKFD0yHwE"
-USERNAME  = "BAwPPDYtETwNHRsKFD0yHwE"
-PASSWORD  = "cK3C/mWbHLRUFkbak1DY+31U"
+CLIENT_ID = "Dg0MFSkPJAIJMgchHjw1BwY"
+USERNAME  = "Dg0MFSkPJAIJMgchHjw1BwY"
+PASSWORD  = "8p9YF6bT68Hxjny5ChF13Vrm"
 CHANNEL_ID = "3142608"
 
 # Quan trọng: dùng keyword client_id=... (không truyền positional)

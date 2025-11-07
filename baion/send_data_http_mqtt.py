@@ -17,16 +17,34 @@ from seeed_dht import DHT          # Thư viện đọc cảm biến DHT11
 # API Key (Write): AHHO5UL59ZCYUYCV
 # API Key (Read): N251PNZ5EG0MWI2Y
 
-# MQTT credentials
-CLIENT_ID = "IQYGJxEjIxMmMxAzJSw1ISs"  # ID client MQTT
-USERNAME  = "IQYGJxEjIxMmMxAzJSw1ISs"  # Username để xác thực MQTT
-PASSWORD  = "aMJjEGryTWE/mhhIDZB7SKLD"  # Password để xác thực MQTT
-CHANNEL_ID = "3127848"                   # ID kênh ThingSpeak
+# === THÔNG TIN KÊNH THINGSPEAK CHO MQTT ===
+# Channel ID: 3127848
+CLIENT_ID = "Dg0MFSkPJAIJMgchHjw1BwY"  # ID client MQTT
+USERNAME  = "Dg0MFSkPJAIJMgchHjw1BwY"  # Username để xác thực MQTT
+PASSWORD  = "8p9YF6bT68Hxjny5ChF13Vrm"  # Password để xác thực MQTT
+CHANNEL_ID = "3127848"                   # ID kênh ThingSpeak cho MQTT
+
+# ========================================
+# HÀM CALLBACK CHO MQTT
+# ========================================
+def on_connect(client, userdata, flags, rc):
+    """Callback khi kết nối MQTT thành công"""
+    if rc == 0:
+        print("✓ Đã kết nối MQTT broker thành công")
+    else:
+        print(f"✗ Kết nối MQTT thất bại với code: {rc}")
+
+def on_publish(client, userdata, mid):
+    """Callback khi publish thành công"""
+    print(f"  → Message ID {mid} đã được gửi")
 
 # Khởi tạo và cấu hình MQTT client
 client = mqtt.Client(client_id=CLIENT_ID)                    # Tạo MQTT client với CLIENT_ID
 client.username_pw_set(username=USERNAME, password=PASSWORD) # Đặt username và password
+client.on_connect = on_connect                               # Gán callback khi kết nối
+client.on_publish = on_publish                               # Gán callback khi publish
 client.connect("mqtt3.thingspeak.com", 1883, 60)            # Kết nối đến ThingSpeak MQTT (port 1883, timeout 60s)
+client.loop_start()                                          # Bắt đầu loop thread để xử lý MQTT network traffic
 
 # ========================================
 # HÀM TẠO THAM SỐ CHO HTTP REQUEST
@@ -156,6 +174,9 @@ def main():
             # 3.2: Gửi qua MQTT (vào field3, field4 của Channel 3127848)
             thingspeak_post_mqtt(avg_temp, avg_humi)
             print(f'✓ Đã gửi qua MQTT (field3, field4)')
+            
+            # Chờ một chút để đảm bảo MQTT message được gửi đi
+            sleep(1)
         else:
             # Không có dữ liệu hợp lệ nào
             print('\nKhông có dữ liệu hợp lệ để gửi')
@@ -166,4 +187,12 @@ def main():
 # CHẠY CHƯƠNG TRÌNH
 # ========================================
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\nChương trình đã dừng")
+    finally:
+        # Dọn dẹp kết nối MQTT
+        client.loop_stop()
+        client.disconnect()
+        print("Đã ngắt kết nối MQTT")
