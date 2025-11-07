@@ -71,15 +71,13 @@ def on_connect(client, userdata, flags, rc):
         print(f"[{timestamp}] Đã kết nối đến ThingSpeak MQTT broker")
         write_log(timestamp, None, None, f"Kết nối MQTT thành công (code: {rc})")
         
-        # Subscribe (đăng ký) nhận dữ liệu từ field3 và field4
-        # Format: channels/<channelID>/subscribe/fields/field<N>/<READ_API_KEY>
-        # Field3 = Nhiệt độ
-        client.subscribe(f"channels/{CHANNEL_ID}/subscribe/fields/field3/{READ_API_KEY}")
-        print(f"[{timestamp}] Đã subscribe field3 (Nhiệt độ)")
-        
-        # Field4 = Độ ẩm
-        client.subscribe(f"channels/{CHANNEL_ID}/subscribe/fields/field4/{READ_API_KEY}")
-        print(f"[{timestamp}] Đã subscribe field4 (Độ ẩm)")
+        # Subscribe với READ_API_KEY trong topic
+        # Cách 1: Subscribe toàn bộ channel với API key
+        topic = f"channels/{CHANNEL_ID}/subscribe/json/{READ_API_KEY}"
+        result = client.subscribe(topic)
+        print(f"[{timestamp}] Đã subscribe channel (JSON format)")
+        print(f"[{timestamp}] Topic: {topic}")
+        print(f"[{timestamp}] Subscribe result: {result}")
     else:
         print(f"[{timestamp}] Kết nối thất bại với code: {rc}")
         write_log(timestamp, None, None, f"Kết nối MQTT thất bại (code: {rc})")
@@ -92,8 +90,12 @@ def on_disconnect(client, userdata, rc):
     Callback được gọi khi mất kết nối với MQTT broker
     """
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    print(f"[{timestamp}] Mất kết nối với MQTT broker")
-    write_log(timestamp, None, None, f"Mất kết nối MQTT (code: {rc})")
+    if rc != 0:
+        print(f"[{timestamp}] Mất kết nối bất ngờ với MQTT broker (code: {rc})")
+        write_log(timestamp, None, None, f"Mất kết nối MQTT (code: {rc})")
+    else:
+        print(f"[{timestamp}] Ngắt kết nối thành công")
+        write_log(timestamp, None, None, "Ngắt kết nối MQTT thành công")
 
 # ========================================
 # HÀM CALLBACK KHI NHẬN ĐƯỢC MESSAGE
@@ -108,25 +110,47 @@ def on_message(client, userdata, message):
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
     # Lấy giá trị từ message
-    value = message.payload.decode()
+    payload = message.payload.decode()
     topic = message.topic
     
-    # Xác định xem message từ field nào
-    if 'field3' in topic:
-        # Field3 = Nhiệt độ
-        current_temp = value
-        print(f"[{timestamp}] Nhận Nhiệt độ: {value}°C")
-    elif 'field4' in topic:
-        # Field4 = Độ ẩm
-        current_humi = value
-        print(f"[{timestamp}] Nhận Độ ẩm: {value}%")
+    print(f"[{timestamp}] Nhận message từ topic: {topic}")
+    print(f"[{timestamp}] Payload: {payload}")
     
-    # Ghi log mỗi khi nhận dữ liệu (không cần chờ cả 2 field)
-    import time
-    current_time = time.time()
-    if current_time - last_log_time >= 1:  # Ghi log mỗi giây một lần
-        write_log(timestamp, current_temp, current_humi, "Nhận dữ liệu MQTT")
-        last_log_time = current_time
+    # ThingSpeak JSON format hoặc field format
+    try:
+        # Thử parse JSON trước
+        import json
+        try:
+            data = json.loads(payload)
+            if 'field3' in data:
+                current_temp = data['field3']
+                print(f"[{timestamp}] ➤ Nhiệt độ (field3): {current_temp}°C")
+            if 'field4' in data:
+                current_humi = data['field4']
+                print(f"[{timestamp}] ➤ Độ ẩm (field4): {current_humi}%")
+        except json.JSONDecodeError:
+            # Nếu không phải JSON, parse dạng field1=val1&field2=val2
+            if '&' in payload:
+                fields = payload.split('&')
+                for field in fields:
+                    if '=' in field:
+                        key, value = field.split('=', 1)
+                        if key == 'field3':
+                            current_temp = value
+                            print(f"[{timestamp}] ➤ Nhiệt độ (field3): {value}°C")
+                        elif key == 'field4':
+                            current_humi = value
+                            print(f"[{timestamp}] ➤ Độ ẩm (field4): {value}%")
+        
+        # Ghi log mỗi khi nhận dữ liệu
+        import time
+        current_time = time.time()
+        if current_time - last_log_time >= 1:  # Ghi log mỗi giây một lần
+            write_log(timestamp, current_temp, current_humi, "Nhận dữ liệu MQTT")
+            last_log_time = current_time
+            
+    except Exception as e:
+        print(f"[{timestamp}] Lỗi khi parse message: {e}")
 
 # ========================================
 # HÀM CHÍNH - MAIN PROGRAM
@@ -147,7 +171,7 @@ def main():
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     write_log(timestamp, None, None, "Khởi động chương trình đọc dữ liệu MQTT")
     
-    # Tạo MQTT client
+    # Tạo MQTT client (giống như cách cũ)
     client = mqtt.Client(client_id=CLIENT_ID)
     
     # Đăng ký các callback functions
