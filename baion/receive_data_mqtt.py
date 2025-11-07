@@ -19,11 +19,12 @@ CHANNEL_ID = "3127848"
 READ_API_KEY = "N251PNZ5EG0MWI2Y"
 
 # Tên file log
-LOG_FILE = "baion/receive_mqtt_log.csv"
+LOG_FILE = "receive_mqtt_log.csv"
 
 # Biến toàn cục để lưu giá trị nhiệt độ và độ ẩm
 current_temp = None
 current_humi = None
+last_log_time = 0  # Để tránh ghi log quá nhiều
 
 # ========================================
 # HÀM GHI LOG VÀO FILE CSV
@@ -71,6 +72,7 @@ def on_connect(client, userdata, flags, rc):
         write_log(timestamp, None, None, f"Kết nối MQTT thành công (code: {rc})")
         
         # Subscribe (đăng ký) nhận dữ liệu từ field3 và field4
+        # Format: channels/<channelID>/subscribe/fields/field<N>/<READ_API_KEY>
         # Field3 = Nhiệt độ
         client.subscribe(f"channels/{CHANNEL_ID}/subscribe/fields/field3/{READ_API_KEY}")
         print(f"[{timestamp}] Đã subscribe field3 (Nhiệt độ)")
@@ -101,7 +103,7 @@ def on_message(client, userdata, message):
     Callback được gọi khi nhận được message từ topic đã subscribe
     message: Chứa payload (dữ liệu) và topic
     """
-    global current_temp, current_humi
+    global current_temp, current_humi, last_log_time
     
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
@@ -119,14 +121,21 @@ def on_message(client, userdata, message):
         current_humi = value
         print(f"[{timestamp}] Nhận Độ ẩm: {value}%")
     
-    # Nếu đã có cả nhiệt độ và độ ẩm, ghi log
-    if current_temp is not None and current_humi is not None:
-        write_log(timestamp, current_temp, current_humi, "Nhận dữ liệu MQTT thành công")
+    # Ghi log mỗi khi nhận dữ liệu (không cần chờ cả 2 field)
+    import time
+    current_time = time.time()
+    if current_time - last_log_time >= 1:  # Ghi log mỗi giây một lần
+        write_log(timestamp, current_temp, current_humi, "Nhận dữ liệu MQTT")
+        last_log_time = current_time
 
 # ========================================
 # HÀM CHÍNH - MAIN PROGRAM
 # ========================================
 def main():
+    global last_log_time
+    import time
+    last_log_time = time.time()
+    
     print("=" * 70)
     print("BẮT ĐẦU ĐỌC DỮ LIỆU TỪ THINGSPEAK QUA MQTT")
     print(f"Channel ID: {CHANNEL_ID}")

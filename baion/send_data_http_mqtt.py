@@ -8,18 +8,20 @@ import paho.mqtt.client as mqtt    # Thư viện MQTT để gửi dữ liệu qu
 from time import sleep, time       # Hàm sleep để delay, time để tính thời gian
 from seeed_dht import DHT          # Thư viện đọc cảm biến DHT11
 
-# === THÔNG TIN KÊNH THINGSPEAK CHO HTTP ===
-# Channel ID: 3142608
+# === THÔNG TIN KÊNH THINGSPEAK ===
+# Channel ID: 3127848 (Test_Data_Server)
 # Author: mwa0000039454674
-# API Key (Write): AHHO5UL59ZCYUYCV - Dùng để gửi dữ liệu lên server
-# API Key (Read): N251PNZ5EG0MWI2Y - Dùng để đọc dữ liệu từ server
+# Gửi cả HTTP và MQTT vào cùng 1 channel:
+# - HTTP: field1 (temperature_http), field2 (humidity_http)
+# - MQTT: field3 (temperature_mqtt), field4 (humidity_mqtt)
+# API Key (Write): AHHO5UL59ZCYUYCV
+# API Key (Read): N251PNZ5EG0MWI2Y
 
-# === THÔNG TIN KÊNH THINGSPEAK CHO MQTT ===
-# Channel ID: 3127848
+# MQTT credentials
 CLIENT_ID = "IQYGJxEjIxMmMxAzJSw1ISs"  # ID client MQTT
 USERNAME  = "IQYGJxEjIxMmMxAzJSw1ISs"  # Username để xác thực MQTT
 PASSWORD  = "aMJjEGryTWE/mhhIDZB7SKLD"  # Password để xác thực MQTT
-CHANNEL_ID = "3127848"                   # ID kênh ThingSpeak cho MQTT
+CHANNEL_ID = "3127848"                   # ID kênh ThingSpeak
 
 # Khởi tạo và cấu hình MQTT client
 client = mqtt.Client(client_id=CLIENT_ID)                    # Tạo MQTT client với CLIENT_ID

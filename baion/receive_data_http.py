@@ -1,6 +1,6 @@
 # ========================================
 # CHƯƠNG TRÌNH ĐỌC DỮ LIỆU TỪ THINGSPEAK QUA HTTP
-# Đọc nhiệt độ và độ ẩm trung bình từ Channel 3142608
+# Đọc nhiệt độ và độ ẩm trung bình từ Channel 3127848
 # Hiển thị ra Terminal và ghi Log vào file CSV
 # ========================================
 
@@ -12,40 +12,69 @@ import csv
 import os
 
 # === THÔNG TIN KÊNH THINGSPEAK ===
-# Channel ID: 3142608
+# Channel ID: 3127848 (channel nhận dữ liệu từ chương trình 1)
 # Author: mwa0000039454674
 # API Key (Read): N251PNZ5EG0MWI2Y
 API_KEY_READ = "N251PNZ5EG0MWI2Y"
-CHANNEL_ID = "3142608"
+CHANNEL_ID = "3127848"
 
 # Tên file log
-LOG_FILE = "baion/receive_http_log.csv"
+LOG_FILE = "receive_http_log.csv"
 
 # ========================================
 # HÀM ĐỌC DỮ LIỆU TỪ THINGSPEAK QUA HTTP
 # ========================================
-def thingspeak_get_http(field_number):
+def thingspeak_get_latest():
     """
-    Đọc dữ liệu từ ThingSpeak qua HTTP
-    field_number: Số thứ tự field cần đọc (1 hoặc 2)
-    Trả về: Giá trị của field hoặc None nếu lỗi
+    Đọc dữ liệu mới nhất từ ThingSpeak qua HTTP
+    Theo ThingSpeak channel 3127848:
+    - field1: temperature_http (dữ liệu từ HTTP)
+    - field2: humidity_http (dữ liệu từ HTTP)
+    - field3: temperature_mqtt (dữ liệu từ MQTT)
+    - field4: humidity_mqtt (dữ liệu từ MQTT)
+    
+    Chương trình này đọc field1, field2 (dữ liệu từ HTTP)
+    Trả về: Dictionary chứa temperature (field1), humidity (field2), created_at
     """
     try:
-        # Tạo URL để lấy dữ liệu mới nhất từ field
-        url = f'https://api.thingspeak.com/channels/{CHANNEL_ID}/fields/{field_number}/last.json?api_key={API_KEY_READ}'
+        # Đọc từ Channel 3127848 - lấy 1 bản ghi mới nhất
+        # API format: https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json?results=1
+        url = f"https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json?results=1"
         
-        # Gửi GET request
+        # Channel này là public nên không cần API key
+        
         req = request.Request(url, method="GET")
-        r = request.urlopen(req)
-        response_data = r.read().decode()
+        with request.urlopen(req, timeout=10) as r:
+            data = json.loads(r.read().decode())
         
-        # Parse JSON response
-        data = json.loads(response_data)
-        value = data[f'field{field_number}']
+        feeds = data.get("feeds", [])
+        if not feeds:
+            return None
         
-        return value
+        latest = feeds[0]
+        created_at = latest.get("created_at")
+        
+        # Đọc field1 (temperature_http) và field2 (humidity_http)
+        f1 = latest.get("field1")
+        f2 = latest.get("field2")
+        
+        # Chuyển sang float
+        def to_float(x):
+            try:
+                return float(x) if x is not None else None
+            except Exception:
+                return None
+        
+        temperature = to_float(f1)
+        humidity = to_float(f2)
+        
+        return {
+            "created_at": created_at,
+            "temperature": temperature,
+            "humidity": humidity,
+        }
     except Exception as e:
-        print(f'Lỗi khi đọc field{field_number}: {e}')
+        print(f'Lỗi khi đọc dữ liệu: {e}')
         return None
 
 # ========================================
@@ -100,23 +129,30 @@ def main():
             # Lấy thời gian hiện tại
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             
-            # Đọc nhiệt độ từ field1
-            temp = thingspeak_get_http(1)
+            # Đọc dữ liệu mới nhất
+            latest = thingspeak_get_latest()
             
-            # Đọc độ ẩm từ field2
-            humi = thingspeak_get_http(2)
-            
-            # Hiển thị ra Terminal
-            if temp is not None and humi is not None:
-                print(f'[{timestamp}] Nhiệt độ: {temp}°C | Độ ẩm: {humi}%')
-                
-                # Ghi log thành công
-                write_log(timestamp, temp, humi, "Đọc dữ liệu thành công")
+            if latest is None:
+                print(f'[{timestamp}] Chưa có dữ liệu (feeds trống)')
+                write_log(timestamp, None, None, "Chưa có dữ liệu")
             else:
-                print(f'[{timestamp}] Không thể đọc dữ liệu')
+                temp = latest["temperature"]
+                humi = latest["humidity"]
+                ts_utc = latest["created_at"]
                 
-                # Ghi log lỗi
-                write_log(timestamp, temp, humi, "Lỗi đọc dữ liệu")
+                # Hiển thị ra Terminal
+                if temp is not None and humi is not None:
+                    print(f'[{timestamp}] Nhiệt độ: {temp:.2f}°C | Độ ẩm: {humi:.2f}%')
+                    write_log(timestamp, temp, humi, "Đọc dữ liệu thành công")
+                elif temp is not None:
+                    print(f'[{timestamp}] Nhiệt độ: {temp:.2f}°C | Độ ẩm: N/A')
+                    write_log(timestamp, temp, None, "Chỉ có nhiệt độ")
+                elif humi is not None:
+                    print(f'[{timestamp}] Nhiệt độ: N/A | Độ ẩm: {humi:.2f}%')
+                    write_log(timestamp, None, humi, "Chỉ có độ ẩm")
+                else:
+                    print(f'[{timestamp}] Không có field hợp lệ')
+                    write_log(timestamp, None, None, "Không có field hợp lệ")
             
             # Chờ 1 giây trước khi đọc tiếp
             sleep(1)

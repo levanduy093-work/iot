@@ -1,0 +1,10 @@
+Thời gian,Nhiệt độ (°C),Độ ẩm (%),Sự kiện
+2025-11-08 00:15:05,N/A,N/A,Khởi động chương trình đọc dữ liệu MQTT
+2025-11-08 00:15:08,N/A,N/A,Kết nối MQTT thành công (code: 0)
+2025-11-08 00:15:08,N/A,N/A,Mất kết nối MQTT (code: 7)
+2025-11-08 00:15:10,N/A,N/A,Kết nối MQTT thành công (code: 0)
+2025-11-08 00:15:11,N/A,N/A,Mất kết nối MQTT (code: 7)
+2025-11-08 00:15:13,N/A,N/A,Kết nối MQTT thành công (code: 0)
+2025-11-08 00:15:13,N/A,N/A,Mất kết nối MQTT (code: 7)
+2025-11-08 00:15:15,N/A,N/A,Kết nối MQTT thành công (code: 0)
+2025-11-08 00:15:15,N/A,N/A,Mất kết nối MQTT (code: 7)
