@@ -3,8 +3,6 @@ from grove.gpio import GPIO
 from grove.display.jhd1802 import JHD1802
 from grove.grove_moisture_sensor import GroveMoistureSensor
 
-from lcd import lcd
-
 buzzer_pin = 12
 MoistureSensor_pin = 0
 

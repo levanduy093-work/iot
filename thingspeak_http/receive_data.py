@@ -8,8 +8,8 @@ from time import sleep
 import json
 
 def thingspeak_get():
-    api_key_read = "N251PNZ5EG0MWI2Y"
-    channel_ID = "3127848"
+    api_key_read = "6J9SVD7Y3A39AY16"
+    channel_ID = "3142608"
     # GET https://api.thingspeak.com/channels/3125997/fields/1.json?results=2
     # https://api.thingspeak.com/channels/3127848/fields/1/last.json?api_key=N251PNZ5EG0MWI2Y
     req = request.Request(f'https://api.thingspeak.com/channels/{channel_ID}/fields/1/last.json?api_key={api_key_read}', method="GET")

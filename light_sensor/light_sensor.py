@@ -6,7 +6,7 @@ sensor_pin = 0      # Channel = A0
 class GroveLightSensor:
     def __init__(self, channel):
         self.channel = channel
-        self.adc = ADC()
+        self.adc = ADC(address=0x08)
 
     @property
     def light(self):

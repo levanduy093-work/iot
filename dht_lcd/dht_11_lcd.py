@@ -5,21 +5,21 @@ from grove.display.jhd1802 import JHD1802
 def main():
     # Grove - 16x2 LCD (White on Blue) connected to I2C port
     lcd = JHD1802()
-    
-    # Grove - Temperature & Humidity Sensor connected to D2 pin
-    sensor = DHT('11', 5) # DHT11 on GPIO5, if Grove Hat find D2 pin
+
+    # Grove - Temperature & Humidity Sensor connected to port D5
+    sensor = DHT('11', 5)
+
     while True:
-        humidity, temperature = sensor.read()
-        print("Temperature: {:.1f} C, Humidity: {:.1f} %".format(temperature, humidity))
+        humi, temp = sensor.read()
+        print('temperature {}C, humidity {}%'.format(temp, humi))
 
         lcd.setCursor(0, 0)
-        lcd.write("Temperature: {:.1f} C".format(temperature))
+        lcd.write('temperature: {0:2}C'.format(temp))
 
         lcd.setCursor(1, 0)
-        lcd.write("Humidity: {:.1f} %".format(humidity))
+        lcd.write('humidity: {0:5}%'.format(humi))
 
         time.sleep(1)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
-

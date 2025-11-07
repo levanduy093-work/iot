@@ -2,18 +2,22 @@ import paho.mqtt.client as mqtt
 from time import sleep
 from random import randint
 
-CLIENT_ID = "NjE5OhMqHw49ByYbNC8zCDg"
-USERNAME  = "NjE5OhMqHw49ByYbNC8zCDg"
-PASSWORD  = "4RMD5Zo/J+Yf0AaiCTNunImo"
-CHANNEL_ID = "3127848"
+CLIENT_ID = "BAwPPDYtETwNHRsKFD0yHwE"
+USERNAME  = "BAwPPDYtETwNHRsKFD0yHwE"
+PASSWORD  = "cK3C/mWbHLRUFkbak1DY+31U"
+CHANNEL_ID = "3142608"
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with Result code {}".format(rc))
 
     # Subscribe to upadates to a channel field from a private channel
     # channels/<channelID>/subscribe/fields/field<fieldnumber>
-    client.subscribe(f"channels/{CHANNEL_ID}/subscribe/fields/field3")
+    READ_API_KEY = "6J9SVD7Y3A39AY16"
+#     client.subscribe(f"channels/{CHANNEL_ID}/subscribe/fields/field3/{READ_API_KEY}")
 
+    client.subscribe(f"channels/{CHANNEL_ID}/subscribe/fields/field3/{READ_API_KEY}")
+
+#       client.subscribe("channels/%s/subscribe/fields/field3" % (CHANNEL_ID))
 def on_disconnect(client, userdata, rc):
     print("Disconnected From Broker")
 
