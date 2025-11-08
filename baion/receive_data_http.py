@@ -2,79 +2,73 @@
 # CHƯƠNG TRÌNH ĐỌC DỮ LIỆU TỪ THINGSPEAK QUA HTTP
 # Đọc nhiệt độ và độ ẩm trung bình từ Channel 3127848
 # Hiển thị ra Terminal và ghi Log vào file CSV
+# - In mỗi 1 giây (nếu chưa có bản ghi mới thì in lại giá trị cũ)
+# - Căn thời gian để đúng chu kỳ 1.0s
 # ========================================
 
 from urllib import request
-from time import sleep
+from time import sleep, time
 from datetime import datetime
 import json
 import csv
 import os
 
 # === THÔNG TIN KÊNH THINGSPEAK ===
-# Channel ID: 3127848 (channel nhận dữ liệu từ chương trình 1)
-# Author: mwa0000039454674
-# API Key (Read): N251PNZ5EG0MWI2Y
-API_KEY_READ = "N251PNZ5EG0MWI2Y"
+API_KEY_READ = "N251PNZ5EG0MWI2Y"   # channel này public nên có thể không cần
 CHANNEL_ID = "3127848"
 
 # Tên file log
 LOG_FILE = "receive_http_log.csv"
+
+# Lưu giá trị gần nhất (để lặp lại khi chưa có bản ghi mới)
+last_temp = None
+last_humi = None
+last_entry_id = None  # dùng để phát hiện bản ghi mới
 
 # ========================================
 # HÀM ĐỌC DỮ LIỆU TỪ THINGSPEAK QUA HTTP
 # ========================================
 def thingspeak_get_latest():
     """
-    Đọc dữ liệu mới nhất từ ThingSpeak qua HTTP
-    Theo ThingSpeak channel 3127848:
-    - field1: temperature_http (dữ liệu từ HTTP)
-    - field2: humidity_http (dữ liệu từ HTTP)
-    - field3: temperature_mqtt (dữ liệu từ MQTT)
-    - field4: humidity_mqtt (dữ liệu từ MQTT)
-    
-    Chương trình này đọc field1, field2 (dữ liệu từ HTTP)
-    Trả về: Dictionary chứa temperature (field1), humidity (field2), created_at
+    Đọc 1 bản ghi mới nhất từ ThingSpeak qua HTTP
+    - field1: temperature_http
+    - field2: humidity_http
+    Trả về: dict {entry_id, created_at, temperature, humidity} hoặc None
     """
     try:
-        # Đọc từ Channel 3127848 - lấy 1 bản ghi mới nhất
-        # API format: https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json?results=1
+        # public: không cần api_key; nếu private: thêm ?api_key=...
         url = f"https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json?results=1"
-        
-        # Channel này là public nên không cần API key
-        
-        req = request.Request(url, method="GET")
-        with request.urlopen(req, timeout=10) as r:
+        # url = f"https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json?api_key={API_KEY_READ}&results=1"
+
+        with request.urlopen(url, timeout=5) as r:
             data = json.loads(r.read().decode())
-        
+
         feeds = data.get("feeds", [])
         if not feeds:
             return None
-        
+
         latest = feeds[0]
         created_at = latest.get("created_at")
-        
-        # Đọc field1 (temperature_http) và field2 (humidity_http)
-        f1 = latest.get("field1")
-        f2 = latest.get("field2")
-        
-        # Chuyển sang float
+        entry_id = latest.get("entry_id")
+
         def to_float(x):
             try:
                 return float(x) if x is not None else None
             except Exception:
                 return None
-        
-        temperature = to_float(f1)
-        humidity = to_float(f2)
-        
+
+        temperature = to_float(latest.get("field1"))
+        humidity    = to_float(latest.get("field2"))
+
         return {
+            "entry_id": entry_id,
             "created_at": created_at,
             "temperature": temperature,
             "humidity": humidity,
         }
     except Exception as e:
-        print(f'Lỗi khi đọc dữ liệu: {e}')
+        # Có thể log lỗi nếu muốn
+        # print(f'Lỗi khi đọc dữ liệu: {e}')
         return None
 
 # ========================================
@@ -88,23 +82,25 @@ def write_log(timestamp, temp, humi, event):
     humi: Độ ẩm
     event: Mô tả sự kiện
     """
-    # Kiểm tra xem file đã tồn tại chưa
     file_exists = os.path.isfile(LOG_FILE)
-    
-    # Mở file ở chế độ append (thêm vào cuối file)
+
+    def fmt(x):
+        try:
+            return f"{float(x):.2f}"
+        except Exception:
+            return 'N/A' if x is None else str(x)
+
     with open(LOG_FILE, 'a', newline='', encoding='utf-8') as csvfile:
         fieldnames = ['Thời gian', 'Nhiệt độ (°C)', 'Độ ẩm (%)', 'Sự kiện']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        
-        # Nếu file chưa tồn tại, ghi header
+
         if not file_exists:
             writer.writeheader()
-        
-        # Ghi dữ liệu
+
         writer.writerow({
             'Thời gian': timestamp,
-            'Nhiệt độ (°C)': temp if temp else 'N/A',
-            'Độ ẩm (%)': humi if humi else 'N/A',
+            'Nhiệt độ (°C)': fmt(temp),
+            'Độ ẩm (%)': fmt(humi),
             'Sự kiện': event
         })
 
@@ -112,59 +108,58 @@ def write_log(timestamp, temp, humi, event):
 # HÀM CHÍNH - MAIN PROGRAM
 # ========================================
 def main():
+    global last_temp, last_humi, last_entry_id
+
     print("=" * 70)
     print("BẮT ĐẦU ĐỌC DỮ LIỆU TỪ THINGSPEAK QUA HTTP")
     print(f"Channel ID: {CHANNEL_ID}")
     print(f"File log: {LOG_FILE}")
     print("Nhấn Ctrl+C để dừng chương trình")
     print("=" * 70)
-    
+
     # Ghi log khởi động chương trình
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     write_log(timestamp, None, None, "Khởi động chương trình đọc dữ liệu HTTP")
-    
-    # Vòng lặp vô hạn - đọc dữ liệu mỗi 1 giây
+
+    # Vòng lặp vô hạn - đọc dữ liệu mỗi 1 giây (đúng chu kỳ)
     try:
         while True:
-            # Lấy thời gian hiện tại
+            loop_start = time()
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            
-            # Đọc dữ liệu mới nhất
+
             latest = thingspeak_get_latest()
-            
-            if latest is None:
-                print(f'[{timestamp}] Chưa có dữ liệu (feeds trống)')
-                write_log(timestamp, None, None, "Chưa có dữ liệu")
+
+            if latest is not None and latest.get("entry_id") is not None:
+                # Nếu có bản ghi mới, cập nhật bộ nhớ
+                if latest["entry_id"] != last_entry_id:
+                    last_entry_id = latest["entry_id"]
+                    last_temp = latest["temperature"]
+                    last_humi = latest["humidity"]
+
+            # In ra (luôn, mỗi 1 giây) — dùng giá trị cũ nếu chưa có bản mới
+            if last_temp is not None and last_humi is not None:
+                print(f'[{timestamp}] Nhiệt độ: {last_temp:.2f}°C | Độ ẩm: {last_humi:.2f}%')
+                write_log(timestamp, last_temp, last_humi, "Hiển thị mỗi 1 giây")
+            elif last_temp is not None:
+                print(f'[{timestamp}] Nhiệt độ: {last_temp:.2f}°C | Độ ẩm: N/A')
+                write_log(timestamp, last_temp, None, "Hiển thị mỗi 1 giây")
+            elif last_humi is not None:
+                print(f'[{timestamp}] Nhiệt độ: N/A | Độ ẩm: {last_humi:.2f}%')
+                write_log(timestamp, None, last_humi, "Hiển thị mỗi 1 giây")
             else:
-                temp = latest["temperature"]
-                humi = latest["humidity"]
-                ts_utc = latest["created_at"]
-                
-                # Hiển thị ra Terminal
-                if temp is not None and humi is not None:
-                    print(f'[{timestamp}] Nhiệt độ: {temp:.2f}°C | Độ ẩm: {humi:.2f}%')
-                    write_log(timestamp, temp, humi, "Đọc dữ liệu thành công")
-                elif temp is not None:
-                    print(f'[{timestamp}] Nhiệt độ: {temp:.2f}°C | Độ ẩm: N/A')
-                    write_log(timestamp, temp, None, "Chỉ có nhiệt độ")
-                elif humi is not None:
-                    print(f'[{timestamp}] Nhiệt độ: N/A | Độ ẩm: {humi:.2f}%')
-                    write_log(timestamp, None, humi, "Chỉ có độ ẩm")
-                else:
-                    print(f'[{timestamp}] Không có field hợp lệ')
-                    write_log(timestamp, None, None, "Không có field hợp lệ")
-            
-            # Chờ 1 giây trước khi đọc tiếp
-            sleep(1)
-            
+                print(f'[{timestamp}] Chưa có dữ liệu')
+                write_log(timestamp, None, None, "Chưa có dữ liệu")
+
+            # Căn thời gian để đúng 1.0 giây mỗi vòng
+            elapsed = time() - loop_start
+            if elapsed < 1.0:
+                sleep(1.0 - elapsed)
+
     except KeyboardInterrupt:
-        # Khi người dùng nhấn Ctrl+C
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         print("\n" + "=" * 70)
         print("Đã dừng chương trình")
         print("=" * 70)
-        
-        # Ghi log dừng chương trình
         write_log(timestamp, None, None, "Dừng chương trình")
 
 # ========================================
