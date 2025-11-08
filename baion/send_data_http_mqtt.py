@@ -90,9 +90,15 @@ def thingspeak_post_mqtt(temp, humi):
     humi: Giá trị độ ẩm trung bình
     Gửi vào field3 và field4
     """
-    # Publish dữ liệu lên topic của ThingSpeak
+    # Publish dữ liệu lên topic của ThingSpeak với QoS=1 để đảm bảo delivery
     # Format: field3=temp&field4=humi&status=MQTTPUBLISH
-    client.publish(f"channels/{CHANNEL_ID}/publish", f"field3={temp}&field4={humi}&status=MQTTPUBLISH")
+    # QoS=1: At least once delivery - server sẽ gửi ACK xác nhận
+    result = client.publish(
+        f"channels/{CHANNEL_ID}/publish", 
+        f"field3={temp}&field4={humi}&status=MQTTPUBLISH",
+        qos=1  # Đảm bảo message được gửi ít nhất 1 lần
+    )
+    return result
 
 # ========================================
 # HÀM CHÍNH - MAIN PROGRAM
@@ -172,11 +178,18 @@ def main():
             print(f'✓ Đã gửi qua HTTP (field1, field2). Response: {response.decode()}')
             
             # 3.2: Gửi qua MQTT (vào field3, field4 của Channel 3127848)
-            thingspeak_post_mqtt(avg_temp, avg_humi)
-            print(f'✓ Đã gửi qua MQTT (field3, field4)')
+            mqtt_result = thingspeak_post_mqtt(avg_temp, avg_humi)
             
-            # Chờ một chút để đảm bảo MQTT message được gửi đi
-            sleep(1)
+            # Kiểm tra kết quả publish
+            if mqtt_result.rc == mqtt.MQTT_ERR_SUCCESS:
+                print(f'✓ Đã gửi qua MQTT (field3, field4) - Message ID: {mqtt_result.mid}')
+            else:
+                print(f'✗ Lỗi gửi MQTT - Error code: {mqtt_result.rc}')
+            
+            # Chờ lâu hơn để đảm bảo MQTT message được gửi đến server
+            # MQTT cần thời gian để network loop xử lý và gửi message
+            # QoS=1 đảm bảo message sẽ được gửi, nhưng vẫn cần thời gian
+            sleep(3)
         else:
             # Không có dữ liệu hợp lệ nào
             print('\nKhông có dữ liệu hợp lệ để gửi')

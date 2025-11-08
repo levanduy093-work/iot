@@ -1,0 +1,3 @@
+username = IRU6PSACOwQPHy4PKiczCiI
+clientId = IRU6PSACOwQPHy4PKiczCiI
+password = gHzqnX35vjOPS0jeNUVtBdfV

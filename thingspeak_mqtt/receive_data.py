@@ -1,35 +1,32 @@
-import paho.mqtt.client as mqtt
-from time import sleep
-from random import randint
-
-CLIENT_ID = "Dg0MFSkPJAIJMgchHjw1BwY"
-USERNAME  = "Dg0MFSkPJAIJMgchHjw1BwY"
-PASSWORD  = "8p9YF6bT68Hxjny5ChF13Vrm"
-CHANNEL_ID = "3142608"
+# Channel ID: 3127848
+# username    = "IRU6PSACOwQPHy4PKiczCiI"
+# clientID    = "IRU6PSACOwQPHy4PKiczCiI"
+# password    = "gHzqnX35vjOPS0jeNUVtBdfV"
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with Result code {}".format(rc))
+    # subscribes to updates to a channel field (Field3) 
+    client.subscribe("channels/%s/subscribe/fields/field3" % (channel_ID))
 
-    # Subscribe to upadates to a channel field from a private channel
-    # channels/<channelID>/subscribe/fields/field<fieldnumber>
-    READ_API_KEY = "6J9SVD7Y3A39AY16"
-#     client.subscribe(f"channels/{CHANNEL_ID}/subscribe/fields/field3/{READ_API_KEY}")
-
-    client.subscribe(f"channels/{CHANNEL_ID}/subscribe/fields/field3/{READ_API_KEY}")
-
-#       client.subscribe("channels/%s/subscribe/fields/field3" % (CHANNEL_ID))
 def on_disconnect(client, userdata, rc):
     print("Disconnected From Broker")
 
 def on_message(client, userdata, message):
-    print("Message received: " + message.payload.decode())
-    print("Topic: " + message.topic)
+    print(message.payload.decode())
+    #print(message.topic)
 
-client = mqtt.Client(CLIENT_ID)
+import paho.mqtt.client as mqtt
+
+channel_ID = "3127848"
+client_id  = "IRU6PSACOwQPHy4PKiczCiI"
+
+client = mqtt.Client(client_id)
 client.on_connect = on_connect
 client.on_disconnect = on_disconnect
 client.on_message = on_message
-client.username_pw_set(username=USERNAME, password=PASSWORD)
+
+client.username_pw_set(username = "IRU6PSACOwQPHy4PKiczCiI",
+                       password = "gHzqnX35vjOPS0jeNUVtBdfV")
 
 client.connect("mqtt3.thingspeak.com", 1883, 60)
 client.loop_forever()

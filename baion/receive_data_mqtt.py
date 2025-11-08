@@ -1,217 +1,111 @@
-# ========================================
-# CHƯƠNG TRÌNH ĐỌC DỮ LIỆU TỪ THINGSPEAK QUA MQTT
-# Đọc nhiệt độ và độ ẩm trung bình từ Channel 3127848
-# Hiển thị ra Terminal và ghi Log vào file CSV
-# ========================================
-
-import paho.mqtt.client as mqtt
-from time import sleep
+import json
 from datetime import datetime
-import csv
-import os
+import paho.mqtt.client as mqtt
 
-# === THÔNG TIN KÊNH THINGSPEAK ===
-# Channel ID: 3127848
-CLIENT_ID = "Dg0MFSkPJAIJMgchHjw1BwY"
-USERNAME  = "Dg0MFSkPJAIJMgchHjw1BwY"
-PASSWORD  = "8p9YF6bT68Hxjny5ChF13Vrm"
+USERNAME   = "IRU6PSACOwQPHy4PKiczCiI"
+CLIENT_ID  = "IRU6PSACOwQPHy4PKiczCiI"
+PASSWORD   = "gHzqnX35vjOPS0jeNUVtBdfV"
 CHANNEL_ID = "3127848"
-READ_API_KEY = "N251PNZ5EG0MWI2Y"
 
-# Tên file log
-LOG_FILE = "receive_mqtt_log.csv"
+MQTT_HOST, MQTT_PORT, MQTT_KEEPALIVE = "mqtt3.thingspeak.com", 1883, 60
 
-# Biến toàn cục để lưu giá trị nhiệt độ và độ ẩm
 current_temp = None
 current_humi = None
-last_log_time = 0  # Để tránh ghi log quá nhiều
 
-# ========================================
-# HÀM GHI LOG VÀO FILE CSV
-# ========================================
-def write_log(timestamp, temp, humi, event):
-    """
-    Ghi log vào file CSV
-    timestamp: Thời gian sự kiện
-    temp: Nhiệt độ
-    humi: Độ ẩm
-    event: Mô tả sự kiện
-    """
-    # Kiểm tra xem file đã tồn tại chưa
-    file_exists = os.path.isfile(LOG_FILE)
-    
-    # Mở file ở chế độ append (thêm vào cuối file)
-    with open(LOG_FILE, 'a', newline='', encoding='utf-8') as csvfile:
-        fieldnames = ['Thời gian', 'Nhiệt độ (°C)', 'Độ ẩm (%)', 'Sự kiện']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        
-        # Nếu file chưa tồn tại, ghi header
-        if not file_exists:
-            writer.writeheader()
-        
-        # Ghi dữ liệu
-        writer.writerow({
-            'Thời gian': timestamp,
-            'Nhiệt độ (°C)': temp if temp else 'N/A',
-            'Độ ẩm (%)': humi if humi else 'N/A',
-            'Sự kiện': event
-        })
+def now():
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-# ========================================
-# HÀM CALLBACK KHI KẾT NỐI THÀNH CÔNG
-# ========================================
+def try_float(x):
+    try:
+        return float(str(x).strip())
+    except Exception:
+        return None
+
+def maybe_print_pair():
+    if current_temp is not None and current_humi is not None:
+        print(f"[{now()}] ⇄ CURRENT → field3={current_temp}°C, field4={current_humi}%")
+
 def on_connect(client, userdata, flags, rc):
-    """
-    Callback được gọi khi kết nối đến MQTT broker
-    rc: Return code (0 = thành công)
-    """
-    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    
     if rc == 0:
-        print(f"[{timestamp}] Đã kết nối đến ThingSpeak MQTT broker")
-        write_log(timestamp, None, None, f"Kết nối MQTT thành công (code: {rc})")
-        
-        # Subscribe với READ_API_KEY trong topic
-        # Cách 1: Subscribe toàn bộ channel với API key
-        topic = f"channels/{CHANNEL_ID}/subscribe/json/{READ_API_KEY}"
-        result = client.subscribe(topic)
-        print(f"[{timestamp}] Đã subscribe channel (JSON format)")
-        print(f"[{timestamp}] Topic: {topic}")
-        print(f"[{timestamp}] Subscribe result: {result}")
+        print(f"[{now()}] MQTT connected (rc={rc})")
+        t3 = f"channels/{CHANNEL_ID}/subscribe/fields/field3"
+        t4 = f"channels/{CHANNEL_ID}/subscribe/fields/field4"
+        tj = f"channels/{CHANNEL_ID}/subscribe/json"
+        client.subscribe(t3, qos=0)
+        client.subscribe(t4, qos=0)
+        client.subscribe(tj, qos=0)
+        print(f"[{now()}] Subscribed:\n  • {t3}\n  • {t4}\n  • {tj}")
     else:
-        print(f"[{timestamp}] Kết nối thất bại với code: {rc}")
-        write_log(timestamp, None, None, f"Kết nối MQTT thất bại (code: {rc})")
+        print(f"[{now()}] MQTT connect failed (rc={rc})")
 
-# ========================================
-# HÀM CALLBACK KHI MẤT KẾT NỐI
-# ========================================
 def on_disconnect(client, userdata, rc):
-    """
-    Callback được gọi khi mất kết nối với MQTT broker
-    """
-    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     if rc != 0:
-        print(f"[{timestamp}] Mất kết nối bất ngờ với MQTT broker (code: {rc})")
-        write_log(timestamp, None, None, f"Mất kết nối MQTT (code: {rc})")
+        print(f"[{now()}] Disconnected unexpectedly (rc={rc})")
     else:
-        print(f"[{timestamp}] Ngắt kết nối thành công")
-        write_log(timestamp, None, None, "Ngắt kết nối MQTT thành công")
+        print(f"[{now()}] Disconnected")
 
-# ========================================
-# HÀM CALLBACK KHI NHẬN ĐƯỢC MESSAGE
-# ========================================
 def on_message(client, userdata, message):
-    """
-    Callback được gọi khi nhận được message từ topic đã subscribe
-    message: Chứa payload (dữ liệu) và topic
-    """
-    global current_temp, current_humi, last_log_time
-    
-    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    
-    # Lấy giá trị từ message
-    payload = message.payload.decode()
+    global current_temp, current_humi
     topic = message.topic
-    
-    print(f"[{timestamp}] Nhận message từ topic: {topic}")
-    print(f"[{timestamp}] Payload: {payload}")
-    
-    # ThingSpeak JSON format hoặc field format
+    payload = message.payload.decode(errors="ignore").strip()
+    print(f"[{now()}] {topic}: {payload}")
+
     try:
-        # Thử parse JSON trước
-        import json
-        try:
+        if topic.endswith("/field3"):
+            v = try_float(payload)
+            if v is not None:
+                current_temp = v
+                print(f"[{now()}] → field3(temp) = {current_temp}°C")
+                maybe_print_pair()
+
+        elif topic.endswith("/field4"):
+            v = try_float(payload)
+            if v is not None:
+                current_humi = v
+                print(f"[{now()}] → field4(humi) = {current_humi}%")
+                maybe_print_pair()
+
+        elif topic.endswith("/json"):
             data = json.loads(payload)
-            if 'field3' in data:
-                current_temp = data['field3']
-                print(f"[{timestamp}] ➤ Nhiệt độ (field3): {current_temp}°C")
-            if 'field4' in data:
-                current_humi = data['field4']
-                print(f"[{timestamp}] ➤ Độ ẩm (field4): {current_humi}%")
-        except json.JSONDecodeError:
-            # Nếu không phải JSON, parse dạng field1=val1&field2=val2
-            if '&' in payload:
-                fields = payload.split('&')
-                for field in fields:
-                    if '=' in field:
-                        key, value = field.split('=', 1)
-                        if key == 'field3':
-                            current_temp = value
-                            print(f"[{timestamp}] ➤ Nhiệt độ (field3): {value}°C")
-                        elif key == 'field4':
-                            current_humi = value
-                            print(f"[{timestamp}] ➤ Độ ẩm (field4): {value}%")
-        
-        # Ghi log mỗi khi nhận dữ liệu
-        import time
-        current_time = time.time()
-        if current_time - last_log_time >= 1:  # Ghi log mỗi giây một lần
-            write_log(timestamp, current_temp, current_humi, "Nhận dữ liệu MQTT")
-            last_log_time = current_time
-            
+            f3 = try_float(data.get("field3"))
+            f4 = try_float(data.get("field4"))
+            updated = False
+            if f3 is not None:
+                current_temp = f3
+                print(f"[{now()}] → field3(temp) = {current_temp}°C")
+                updated = True
+            if f4 is not None:
+                current_humi = f4
+                print(f"[{now()}] → field4(humi) = {current_humi}%")
+                updated = True
+            if updated:
+                maybe_print_pair()
     except Exception as e:
-        print(f"[{timestamp}] Lỗi khi parse message: {e}")
+        print(f"[{now()}] Parse error: {e}")
 
-# ========================================
-# HÀM CHÍNH - MAIN PROGRAM
-# ========================================
 def main():
-    global last_log_time
-    import time
-    last_log_time = time.time()
-    
-    print("=" * 70)
-    print("BẮT ĐẦU ĐỌC DỮ LIỆU TỪ THINGSPEAK QUA MQTT")
-    print(f"Channel ID: {CHANNEL_ID}")
-    print(f"File log: {LOG_FILE}")
-    print("Nhấn Ctrl+C để dừng chương trình")
-    print("=" * 70)
-    
-    # Ghi log khởi động chương trình
-    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    write_log(timestamp, None, None, "Khởi động chương trình đọc dữ liệu MQTT")
-    
-    # Tạo MQTT client (giống như cách cũ)
-    client = mqtt.Client(client_id=CLIENT_ID)
-    
-    # Đăng ký các callback functions
-    client.on_connect = on_connect       # Được gọi khi kết nối thành công
-    client.on_disconnect = on_disconnect # Được gọi khi mất kết nối
-    client.on_message = on_message       # Được gọi khi nhận message
-    
-    # Đặt username và password
-    client.username_pw_set(username=USERNAME, password=PASSWORD)
-    
-    try:
-        # Kết nối đến ThingSpeak MQTT broker
-        client.connect("mqtt3.thingspeak.com", 1883, 60)
-        
-        # Chạy vòng lặp để nhận message liên tục
-        # loop_forever() sẽ chặn chương trình và tự động xử lý kết nối
-        client.loop_forever()
-        
-    except KeyboardInterrupt:
-        # Khi người dùng nhấn Ctrl+C
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        print("\n" + "=" * 70)
-        print("Đang ngắt kết nối...")
-        
-        # Ngắt kết nối MQTT
-        client.disconnect()
-        
-        print("Đã dừng chương trình")
-        print("=" * 70)
-        
-        # Ghi log dừng chương trình
-        write_log(timestamp, None, None, "Dừng chương trình")
-    
-    except Exception as e:
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        print(f"[{timestamp}] Lỗi: {e}")
-        write_log(timestamp, None, None, f"Lỗi: {e}")
+    print("="*66)
+    print("RECEIVER (MQTT-only) – field3 & field4 from ThingSpeak (PUBLIC)")
+    print(f"Channel: {CHANNEL_ID}")
+    print("="*66)
 
-# ========================================
-# CHẠY CHƯƠNG TRÌNH
-# ========================================
-if __name__ == '__main__':
+    client = mqtt.Client(client_id=CLIENT_ID, protocol=mqtt.MQTTv311)
+    client.username_pw_set(USERNAME, PASSWORD)
+
+    # Last-Will: thông báo nếu client chết bất thường
+    client.will_set(f"clients/{CLIENT_ID}/status", payload="offline", qos=0, retain=False)
+
+    client.on_connect = on_connect
+    client.on_disconnect = on_disconnect
+    client.on_message = on_message
+
+    try:
+        client.reconnect_delay_set(min_delay=1, max_delay=30)
+    except AttributeError:
+        pass
+
+    client.connect(MQTT_HOST, MQTT_PORT, MQTT_KEEPALIVE)
+    client.loop_forever()
+
+if __name__ == "__main__":
     main()
