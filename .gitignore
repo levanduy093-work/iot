@@ -1,0 +1,7 @@
+# Log files
+baion/receive_mqtt_log.csv
+baion/receive_http_log.csv
+
+# API keys
+send_data_mqtt_key.txt
+receive_data_mqtt_key.txt
