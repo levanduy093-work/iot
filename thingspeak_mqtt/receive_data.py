@@ -5,8 +5,9 @@
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with Result code {}".format(rc))
-    # subscribes to updates to a channel field (Field3) 
+    # subscribes to updates to channel fields (Field3 & Field4)
     client.subscribe("channels/%s/subscribe/fields/field3" % (channel_ID))
+    client.subscribe("channels/%s/subscribe/fields/field4" % (channel_ID))
 
 def on_disconnect(client, userdata, rc):
     print("Disconnected From Broker")
