@@ -1,0 +1,194 @@
+[
+    {
+        "id": "thingspeak-mqtt-broker",
+        "type": "mqtt-broker",
+        "name": "ThingSpeak MQTT",
+        "broker": "mqtt3.thingspeak.com",
+        "port": "1883",
+        "clientid": "IRU6PSACOwQPHy4PKiczCiI",
+        "usetls": false,
+        "compatmode": true,
+        "keepalive": "60",
+        "cleansession": true,
+        "username": "IRU6PSACOwQPHy4PKiczCiI",
+        "password": "gHzqnX35vjOPS0jeNUVtBdfV",
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "mqtt-temperature",
+        "type": "mqtt in",
+        "name": "Nhận Nhiệt độ",
+        "topic": "channels/3153408/subscribe/fields/field1",
+        "qos": "1",
+        "datatype": "auto",
+        "broker": "thingspeak-mqtt-broker",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "x": 140,
+        "y": 100,
+        "wires": [
+            [
+                "function-parse-temp",
+                "gauge-temperature"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt-humidity",
+        "type": "mqtt in",
+        "name": "Nhận Độ ẩm",
+        "topic": "channels/3153408/subscribe/fields/field2",
+        "qos": "1",
+        "datatype": "auto",
+        "broker": "thingspeak-mqtt-broker",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "x": 140,
+        "y": 180,
+        "wires": [
+            [
+                "function-parse-humi",
+                "gauge-humidity"
+            ]
+        ]
+    },
+    {
+        "id": "function-parse-temp",
+        "type": "function",
+        "name": "Parse Nhiệt độ",
+        "func": "// Parse và chuyển đổi nhiệt độ\nvar value = parseFloat(msg.payload);\nif (isNaN(value)) {\n    return null;\n}\nmsg.payload = value;\nmsg.topic = \"temperature\";\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 100,
+        "wires": [
+            [
+                "debug-temperature"
+            ]
+        ]
+    },
+    {
+        "id": "function-parse-humi",
+        "type": "function",
+        "name": "Parse Độ ẩm",
+        "func": "// Parse và chuyển đổi độ ẩm\nvar value = parseFloat(msg.payload);\nif (isNaN(value)) {\n    return null;\n}\nmsg.payload = value;\nmsg.topic = \"humidity\";\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 180,
+        "wires": [
+            [
+                "debug-humidity"
+            ]
+        ]
+    },
+    {
+        "id": "gauge-temperature",
+        "type": "ui_gauge",
+        "name": "Gauge Nhiệt độ",
+        "group": "dashboard-group",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Nhiệt độ",
+        "label": "°C",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 100,
+        "x": 360,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "gauge-humidity",
+        "type": "ui_gauge",
+        "name": "Gauge Độ ẩm",
+        "group": "dashboard-group",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Độ ẩm",
+        "label": "%",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 100,
+        "x": 360,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "debug-temperature",
+        "type": "debug",
+        "name": "Debug Nhiệt độ",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 570,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "debug-humidity",
+        "type": "debug",
+        "name": "Debug Độ ẩm",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 570,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "dashboard-group",
+        "type": "ui_group",
+        "name": "Giám sát Nhiệt độ & Độ ẩm",
+        "tab": "dashboard-tab",
+        "order": 1,
+        "disp": true,
+        "width": "6",
+        "height": "1",
+        "className": ""
+    },
+    {
+        "id": "dashboard-tab",
+        "type": "ui_tab",
+        "name": "Dashboard",
+        "icon": "dashboard",
+        "order": 1,
+        "disabled": false,
+        "hidden": false
+    }
+]

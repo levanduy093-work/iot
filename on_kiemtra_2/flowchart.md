@@ -1,19 +1,50 @@
-# Lưu đồ giải thuật - Hệ thống giám sát nhiệt độ và độ ẩm
+# Lưu đồ giải thuật - Hệ thống giám sát nhiệt độ và độ ẩm với Node-RED Dashboard
 
-## 1. Lưu đồ chương trình chính (main)
+## 1. Lưu đồ tổng quan hệ thống
+
+```mermaid
+flowchart TB
+    subgraph RaspberryPi["RASPBERRY PI"]
+        A1[Đọc cảm biến DHT11] --> A2[Xử lý dữ liệu]
+        A2 --> A3[Điều khiển LED & Buzzer]
+        A3 --> A4[Gửi lên ThingSpeak MQTT]
+    end
+    
+    subgraph ThingSpeak["THINGSPEAK SERVER"]
+        B1[Nhận dữ liệu MQTT] --> B2[Lưu trữ dữ liệu]
+        B2 --> B3[Publish dữ liệu qua MQTT]
+    end
+    
+    subgraph NodeRED["NODE-RED DASHBOARD"]
+        C1[Subscribe MQTT] --> C2[Parse dữ liệu]
+        C2 --> C3[Hiển thị trên Gauge]
+    end
+    
+    A4 -->|MQTT Publish| B1
+    B3 -->|MQTT Subscribe| C1
+    C3 -->|Web UI| User[Người dùng xem Dashboard]
+    
+    style RaspberryPi fill:#E8F5E9
+    style ThingSpeak fill:#E3F2FD
+    style NodeRED fill:#FFF3E0
+    style User fill:#FCE4EC
+```
+
+## 2. Lưu đồ chương trình Python (Raspberry Pi)
 
 ```mermaid
 flowchart TD
-    Start([BẮT ĐẦU]) --> Init[Khởi tạo MQTT Client<br/>Khởi tạo DHT11 Sensor<br/>Khởi tạo LED và Buzzer]
+    Start([BẮT ĐẦU]) --> Init[Khởi tạo:<br/>- MQTT Client<br/>- DHT11 Sensor<br/>- LED đỏ, LED vàng<br/>- Buzzer]
     Init --> PrintStart[In thông báo khởi động]
     PrintStart --> Loop{Vòng lặp chính}
     
-    Loop --> ReadSensor[Đọc dữ liệu từ DHT11<br/>humi, temp = sensor.read]
-    ReadSensor --> Display[Hiển thị nhiệt độ và độ ẩm<br/>lên Terminal]
+    Loop --> ReadSensor[Đọc cảm biến DHT11<br/>humi, temp = sensor.read]
+    ReadSensor --> Display[Hiển thị lên Terminal<br/>Nhiệt độ và Độ ẩm]
     Display --> ControlLED[Gọi hàm control_leds]
     ControlLED --> ControlBuzzer[Gọi hàm control_buzzer]
     ControlBuzzer --> SendMQTT[Gửi dữ liệu lên ThingSpeak<br/>qua MQTT]
-    SendMQTT --> CheckBuzzer{Buzzer đang<br/>hoạt động?}
+    SendMQTT --> PrintSuccess[In: Đã gửi dữ liệu]
+    PrintSuccess --> CheckBuzzer{Buzzer đang<br/>hoạt động?}
     
     CheckBuzzer -->|Có| Sleep1[Chờ 1 giây]
     CheckBuzzer -->|Không| Sleep10[Chờ 10 giây]
@@ -22,7 +53,7 @@ flowchart TD
     Sleep10 --> Loop
     
     Loop -.->|Ctrl+C| Interrupt[Nhận KeyboardInterrupt]
-    Interrupt --> Cleanup[Tắt tất cả LED và Buzzer<br/>Ngắt kết nối MQTT]
+    Interrupt --> Cleanup[Tắt LED và Buzzer<br/>Ngắt kết nối MQTT]
     Cleanup --> End([KẾT THÚC])
     
     style Start fill:#90EE90
@@ -31,7 +62,7 @@ flowchart TD
     style CheckBuzzer fill:#FFD700
 ```
 
-## 2. Lưu đồ điều khiển LED (control_leds)
+## 3. Lưu đồ điều khiển LED (control_leds)
 
 ```mermaid
 flowchart TD
@@ -79,7 +110,7 @@ flowchart TD
     style TurnOffYellow fill:#4ECDC4
 ```
 
-## 3. Lưu đồ điều khiển Buzzer (control_buzzer)
+## 4. Lưu đồ điều khiển Buzzer (control_buzzer)
 
 ```mermaid
 flowchart TD
@@ -118,7 +149,7 @@ flowchart TD
     style TurnOffBuzzer2 fill:#4ECDC4
 ```
 
-## 4. Lưu đồ gửi dữ liệu lên ThingSpeak (thingspeak_mqtt)
+## 5. Lưu đồ gửi dữ liệu lên ThingSpeak (thingspeak_mqtt)
 
 ```mermaid
 flowchart TD
@@ -131,70 +162,120 @@ flowchart TD
     style Publish fill:#87CEEB
 ```
 
-## 5. Lưu đồ tổng quan hệ thống
+## 6. Lưu đồ Node-RED nhận và hiển thị dữ liệu
 
 ```mermaid
-flowchart TB
-    subgraph Init["KHỞI TẠO"]
-        A1[Khởi tạo MQTT Client] --> A2[Khởi tạo DHT11 Sensor]
-        A2 --> A3[Khởi tạo LED đỏ, LED vàng]
-        A3 --> A4[Khởi tạo Buzzer]
+flowchart TD
+    Start([BẮT ĐẦU Node-RED Flow]) --> InitMQTT[Khởi tạo MQTT Broker<br/>Kết nối ThingSpeak]
+    InitMQTT --> Connect{Đã kết nối<br/>MQTT?}
+    
+    Connect -->|Chưa| WaitConnect[Chờ kết nối]
+    WaitConnect --> Connect
+    Connect -->|Đã kết nối| Subscribe[Subscribe các topic:<br/>- channels/3153408/subscribe/fields/field1<br/>- channels/3153408/subscribe/fields/field2]
+    
+    Subscribe --> Listen[Lắng nghe dữ liệu]
+    
+    Listen --> ReceiveTemp{Nhận dữ liệu<br/>Nhiệt độ?}
+    Listen --> ReceiveHumi{Nhận dữ liệu<br/>Độ ẩm?}
+    
+    ReceiveTemp -->|Có| ParseTemp[Parse Nhiệt độ<br/>parseFloat payload]
+    ReceiveHumi -->|Có| ParseHumi[Parse Độ ẩm<br/>parseFloat payload]
+    
+    ParseTemp --> CheckValidTemp{Giá trị<br/>hợp lệ?}
+    ParseHumi --> CheckValidHumi{Giá trị<br/>hợp lệ?}
+    
+    CheckValidTemp -->|Có| UpdateGaugeTemp[Cập nhật Gauge Nhiệt độ<br/>Hiển thị trên Dashboard]
+    CheckValidTemp -->|Không| DebugTemp[Debug: Giá trị không hợp lệ]
+    
+    CheckValidHumi -->|Có| UpdateGaugeHumi[Cập nhật Gauge Độ ẩm<br/>Hiển thị trên Dashboard]
+    CheckValidHumi -->|Không| DebugHumi[Debug: Giá trị không hợp lệ]
+    
+    UpdateGaugeTemp --> Listen
+    UpdateGaugeHumi --> Listen
+    DebugTemp --> Listen
+    DebugHumi --> Listen
+    
+    style Start fill:#90EE90
+    style Connect fill:#FFD700
+    style ReceiveTemp fill:#87CEEB
+    style ReceiveHumi fill:#87CEEB
+    style UpdateGaugeTemp fill:#4ECDC4
+    style UpdateGaugeHumi fill:#4ECDC4
+```
+
+## 7. Lưu đồ chi tiết Node-RED Flow
+
+```mermaid
+flowchart LR
+    subgraph MQTT["MQTT INPUT"]
+        A1[MQTT In - Nhiệt độ<br/>Topic: field1] --> A2[MQTT In - Độ ẩm<br/>Topic: field2]
     end
     
-    subgraph MainLoop["VÒNG LẶP CHÍNH"]
-        B1[Đọc cảm biến DHT11] --> B2[Hiển thị dữ liệu]
-        B2 --> B3[Điều khiển LED]
-        B3 --> B4[Điều khiển Buzzer]
-        B4 --> B5[Gửi lên ThingSpeak]
-        B5 --> B6{Chờ thời gian}
-        B6 -->|Buzzer hoạt động| B7[Chờ 1 giây]
-        B6 -->|Buzzer không hoạt động| B8[Chờ 10 giây]
-        B7 --> B1
-        B8 --> B1
+    subgraph Parse["PARSE DATA"]
+        B1[Function Parse<br/>Nhiệt độ] --> B2[Function Parse<br/>Độ ẩm]
     end
     
-    subgraph LEDControl["ĐIỀU KHIỂN LED"]
-        C1{Nhiệt độ > 40°C?} -->|Có| C2[Bật LED đỏ]
-        C1 -->|Không| C3{Nhiệt độ < 30°C?}
-        C3 -->|Có| C4[Tắt LED đỏ]
-        C3 -->|Không| C5{Độ ẩm > 70%?}
-        C5 -->|Có| C6[Bật LED vàng]
-        C5 -->|Không| C7{Độ ẩm < 40%?}
-        C7 -->|Có| C8[Tắt LED vàng]
+    subgraph Display["DISPLAY"]
+        C1[Gauge Nhiệt độ<br/>0-100°C] --> C2[Gauge Độ ẩm<br/>0-100%]
+        D1[Debug Nhiệt độ] --> D2[Debug Độ ẩm]
     end
     
-    subgraph BuzzerControl["ĐIỀU KHIỂN BUZZER"]
-        D1{Nhiệt độ > 50°C?} -->|Có| D2{Buzzer đã kích hoạt?}
-        D2 -->|Chưa| D3[Khởi tạo và bật buzzer]
-        D2 -->|Đã kích hoạt| D4{Đã qua 1 giây?}
-        D4 -->|Có| D5[Toggle buzzer on/off]
-        D1 -->|Không| D6{Tắt buzzer nếu đang bật}
-    end
+    A1 -->|Payload| B1
+    A1 -->|Payload| C1
+    A2 -->|Payload| B2
+    A2 -->|Payload| C2
     
-    Init --> MainLoop
-    B3 --> LEDControl
-    B4 --> BuzzerControl
+    B1 --> D1
+    B2 --> D2
     
-    style Init fill:#E8F5E9
-    style MainLoop fill:#E3F2FD
-    style LEDControl fill:#FFF3E0
-    style BuzzerControl fill:#FCE4EC
+    C1 -->|Web UI| User[User Dashboard]
+    C2 -->|Web UI| User
+    
+    style MQTT fill:#E3F2FD
+    style Parse fill:#FFF3E0
+    style Display fill:#E8F5E9
+    style User fill:#FCE4EC
+```
+
+## 8. Lưu đồ luồng dữ liệu tổng thể
+
+```mermaid
+sequenceDiagram
+    participant RPi as Raspberry Pi
+    participant TS as ThingSpeak Server
+    participant NR as Node-RED
+    participant UI as Web Dashboard
+    
+    RPi->>RPi: Đọc cảm biến DHT11
+    RPi->>RPi: Điều khiển LED & Buzzer
+    RPi->>TS: MQTT Publish (temp, humi, LED status)
+    TS->>TS: Lưu trữ dữ liệu
+    TS->>NR: MQTT Publish (field1, field2)
+    NR->>NR: Parse dữ liệu
+    NR->>NR: Cập nhật Gauge
+    NR->>UI: Hiển thị trên Dashboard
+    UI->>UI: User xem nhiệt độ & độ ẩm
 ```
 
 ## Mô tả các thành phần:
 
-### Khởi tạo:
-- **MQTT Client**: Kết nối với ThingSpeak qua MQTT
-- **DHT11 Sensor**: Cảm biến nhiệt độ và độ ẩm (port D5)
-- **LED đỏ**: Pin 16, cảnh báo nhiệt độ
-- **LED vàng**: Pin 18, cảnh báo độ ẩm
-- **Buzzer**: Pin 12, cảnh báo âm thanh
+### Raspberry Pi (Python):
+- **Cảm biến**: DHT11 đọc nhiệt độ và độ ẩm
+- **Điều khiển**: LED đỏ (nhiệt độ), LED vàng (độ ẩm), Buzzer (cảnh báo)
+- **Gửi dữ liệu**: MQTT Publish lên ThingSpeak mỗi 10 giây (hoặc 1 giây nếu buzzer hoạt động)
+
+### ThingSpeak Server:
+- **Nhận dữ liệu**: Qua MQTT từ Raspberry Pi
+- **Lưu trữ**: Field1 (nhiệt độ), Field2 (độ ẩm), Field3 (LED vàng), Field4 (LED đỏ)
+- **Publish**: Gửi lại dữ liệu qua MQTT cho các subscriber
+
+### Node-RED Dashboard:
+- **Subscribe**: Nhận dữ liệu từ ThingSpeak qua MQTT
+- **Parse**: Chuyển đổi string sang số
+- **Hiển thị**: Gauge trên giao diện web
+- **Truy cập**: `http://localhost:1880/ui` hoặc `http://[IP]:1880/ui`
 
 ### Logic điều khiển:
 - **LED đỏ**: Bật khi temp > 40°C, tắt khi temp < 30°C
 - **LED vàng**: Bật khi humi > 70%, tắt khi humi < 40%
 - **Buzzer**: Bật/tắt mỗi 1 giây khi temp > 50°C
-
-### Gửi dữ liệu:
-- Gửi nhiệt độ, độ ẩm và trạng thái LED lên ThingSpeak mỗi chu kỳ
-
