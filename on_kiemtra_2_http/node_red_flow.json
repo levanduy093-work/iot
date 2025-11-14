@@ -1,0 +1,160 @@
+[
+    {
+        "id": "http-request-thingspeak",
+        "type": "http request",
+        "name": "ThingSpeak API Request",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "https://api.thingspeak.com/channels/3153408/feeds.json?results=1&api_key=N251PNZ5EG0MWI2Y",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 140,
+        "y": 100,
+        "wires": [
+            [
+                "function-parse-data"
+            ]
+        ]
+    },
+    {
+        "id": "inject-timer",
+        "type": "inject",
+        "name": "Timer 15 giây",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "15",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 140,
+        "y": 180,
+        "wires": [
+            [
+                "http-request-thingspeak"
+            ]
+        ]
+    },
+    {
+        "id": "function-parse-data",
+        "type": "function",
+        "name": "Parse dữ liệu ThingSpeak",
+        "func": "// Parse dữ liệu từ ThingSpeak API response\nif (!msg.payload || !msg.payload.feeds || msg.payload.feeds.length === 0) {\n    return null;\n}\n\nvar latest = msg.payload.feeds[0];\nvar temp = parseFloat(latest.field1);\nvar humi = parseFloat(latest.field2);\n\nif (isNaN(temp) || isNaN(humi)) {\n    return null;\n}\n\n// Tạo 2 message riêng cho nhiệt độ và độ ẩm\nvar msgTemp = {\n    payload: temp,\n    topic: \"temperature\",\n    timestamp: latest.created_at\n};\n\nvar msgHumi = {\n    payload: humi,\n    topic: \"humidity\",\n    timestamp: latest.created_at\n};\n\nreturn [msgTemp, msgHumi];",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 380,
+        "y": 100,
+        "wires": [
+            [
+                "gauge-temperature",
+                "debug-temperature"
+            ],
+            [
+                "gauge-humidity",
+                "debug-humidity"
+            ]
+        ]
+    },
+    {
+        "id": "gauge-temperature",
+        "type": "ui_gauge",
+        "name": "Gauge Nhiệt độ",
+        "group": "dashboard-group",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Nhiệt độ",
+        "label": "°C",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 100,
+        "x": 600,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "gauge-humidity",
+        "type": "ui_gauge",
+        "name": "Gauge Độ ẩm",
+        "group": "dashboard-group",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Độ ẩm",
+        "label": "%",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 100,
+        "x": 600,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "debug-temperature",
+        "type": "debug",
+        "name": "Debug Nhiệt độ",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 600,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "debug-humidity",
+        "type": "debug",
+        "name": "Debug Độ ẩm",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 600,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "dashboard-group",
+        "type": "ui_group",
+        "name": "Giám sát Nhiệt độ & Độ ẩm",
+        "tab": "dashboard-tab",
+        "order": 1,
+        "disp": true,
+        "width": "6",
+        "height": "1",
+        "className": ""
+    },
+    {
+        "id": "dashboard-tab",
+        "type": "ui_tab",
+        "name": "Dashboard",
+        "icon": "dashboard",
+        "order": 1,
+        "disabled": false,
+        "hidden": false
+    }
+]
+
