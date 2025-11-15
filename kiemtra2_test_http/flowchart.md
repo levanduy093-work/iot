@@ -200,7 +200,7 @@ flowchart TD
     CheckResponse -->|Không| Error[Debug Error]
     Error --> Wait[Chờ lần trigger tiếp theo]
     
-    CheckResponse -->|Có| ParseJSON[Function: Parse JSON<br/>Lấy feeds[0]]
+    CheckResponse -->|Có| ParseJSON[Function: Parse JSON<br/>Lấy phần tử đầu tiên của feeds]
     ParseJSON --> CheckFeeds{feeds<br/>có dữ liệu?}
     
     CheckFeeds -->|Không| ReturnNull[Return null]
