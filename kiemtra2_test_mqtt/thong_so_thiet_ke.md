@@ -5,12 +5,12 @@
 ### a) Thông số của IoT Node:
 
 #### **MCU sử dụng Raspberry Pi**
-- **Model**: Raspberry Pi 3B+, 4, hoặc Zero W
+- **Model**: Raspberry Pi 4
 - **Hệ điều hành**: Raspberry Pi OS (Linux)
 - **Ngôn ngữ lập trình**: Python 3.x
 - **Giao tiếp GPIO**: 40-pin GPIO header
 
-#### **Cảm biến nhiệt độ và độ ẩm dùng DHT11**, có thông số:
+#### **Cảm biến nhiệt độ và độ ẩm dùng Grove - Temperature & Humidity Sensor (DHT11)**, có thông số:
 
 - **Nguồn cung cấp**: 5V DC
 - **Loại cảm biến**: Digital dùng chuẩn giao tiếp **1-Wire Protocol**
@@ -21,40 +21,40 @@
   - Nhiệt độ: **±2°C**
   - Độ ẩm: **±5%RH**
 - **Cách sử dụng**: 
-  - Kết nối vào **GPIO pin D5** (GPIO 5) trên Grove Base Hat
+  - Kết nối vào **GPIO pin D5** (GPIO 5) trên **Grove Base Hat for Raspberry Pi**
   - Sử dụng thư viện `seeed_dht` để đọc dữ liệu
   - Đọc dữ liệu: `humi, temp = sensor.read()`
   - Cảm biến tự động đo cả nhiệt độ và độ ẩm
 
-#### **LCD Grove LCD 16x2 I2C**
+#### **LCD Grove - LCD 16x2 I2C**
 
 - **Loại**: Grove LCD 16x2 (White on Blue)
 - **Giao tiếp**: I2C Protocol
 - **Kích thước**: 16 cột x 2 dòng
 - **Địa chỉ I2C**: 0x3E (mặc định)
 - **Cách sử dụng**: 
-  - Kết nối vào cổng I2C trên Grove Base Hat
+  - Kết nối vào cổng I2C trên **Grove Base Hat for Raspberry Pi**
   - Sử dụng thư viện `grove.display.jhd1802`
   - Hiển thị nhiệt độ ở dòng 1, độ ẩm ở dòng 2 (tùy chọn - không bắt buộc trong đề bài)
 
 #### **LED đỏ và vàng**
 
-- **Loại**: Grove LED Module
+- **Loại**: Grove - LED Module
 - **Điện áp hoạt động**: 3.3V - 5V
 - **Giao tiếp**: Digital GPIO
 - **Kết nối**:
-  - **LED đỏ**: GPIO pin D16 (GPIO 16) - dùng để cảnh báo nhiệt độ
-  - **LED vàng**: GPIO pin D18 (GPIO 18) - dùng để cảnh báo độ ẩm
+  - **LED đỏ**: GPIO pin D16 (GPIO 16) trên **Grove Base Hat for Raspberry Pi** - dùng để cảnh báo nhiệt độ
+  - **LED vàng**: GPIO pin D18 (GPIO 18) trên **Grove Base Hat for Raspberry Pi** - dùng để cảnh báo độ ẩm
 - **Điều khiển**: 
   - Logic HIGH (1) = LED sáng
   - Logic LOW (0) = LED tắt
 
 #### **Buzzer (Chuông)**
 
-- **Loại**: Grove Buzzer Module
+- **Loại**: Grove - Buzzer Module
 - **Điện áp hoạt động**: 3.3V - 5V
 - **Giao tiếp**: Digital GPIO
-- **Kết nối**: GPIO pin D12 (GPIO 12)
+- **Kết nối**: GPIO pin D12 (GPIO 12) trên **Grove Base Hat for Raspberry Pi**
 - **Chức năng**: Cảnh báo âm thanh
 - **Điều khiển**: 
   - Logic HIGH (1) = Buzzer kêu
@@ -186,10 +186,10 @@
 
 | Thành phần | Thông số |
 |------------|----------|
-| MCU | Raspberry Pi 3B+/4/Zero W |
-| Cảm biến | DHT11 (Nhiệt độ & Độ ẩm) - GPIO D5 |
-| Hiển thị | LCD 16x2 I2C (tùy chọn) |
-| Điều khiển | 2x Grove LED (Đỏ D16, Vàng D18) + Buzzer (D12) |
+| MCU | Raspberry Pi 4 |
+| Cảm biến | Grove - Temperature & Humidity Sensor (DHT11) - GPIO D5 |
+| Hiển thị | Grove - LCD 16x2 I2C (tùy chọn) |
+| Điều khiển | 2x Grove - LED (Đỏ D16, Vàng D18) + Grove - Buzzer (D12) |
 | Giao tiếp | MQTT Protocol |
 | Broker | mqtt3.thingspeak.com:1883 |
 | Kết nối | WiFi |

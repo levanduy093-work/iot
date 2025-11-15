@@ -5,12 +5,12 @@
 ### a) Thông số của IoT Node:
 
 #### **MCU sử dụng Raspberry Pi**
-- **Model**: Raspberry Pi 3B+, 4, hoặc Zero W
+- **Model**: Raspberry Pi 4
 - **Hệ điều hành**: Raspberry Pi OS (Linux)
 - **Ngôn ngữ lập trình**: Python 3.x
 - **Giao tiếp GPIO**: 40-pin GPIO header
 
-#### **Cảm biến ánh sáng dùng Grove Light Sensor**, có thông số:
+#### **Cảm biến ánh sáng dùng Grove - Light Sensor**, có thông số:
 
 - **Nguồn cung cấp**: 3.3V - 5V DC
 - **Loại cảm biến**: Analog dùng chuẩn giao tiếp **ADC (Analog-to-Digital Converter)**
@@ -18,12 +18,12 @@
   - Cường độ ánh sáng: **0-1000** (giá trị ADC)
 - **Sai số**: **±5%**
 - **Cách sử dụng**: 
-  - Kết nối vào **GPIO pin A0** (Analog Channel 0) trên Grove Base Hat
+  - Kết nối vào **GPIO pin A0** (Analog Channel 0) trên **Grove Base Hat for Raspberry Pi**
   - Sử dụng thư viện `grove.adc` để đọc dữ liệu
   - Đọc dữ liệu: `light_value = light_sensor.value`
   - Giá trị trả về từ 0-1000, càng cao càng sáng
 
-#### **Cảm biến khoảng cách dùng Grove Ultrasonic Ranger**, có thông số:
+#### **Cảm biến khoảng cách dùng Grove - Ultrasonic Ranger**, có thông số:
 
 - **Nguồn cung cấp**: 3.3V - 5V DC
 - **Loại cảm biến**: Digital dùng chuẩn giao tiếp **GPIO Digital I/O**
@@ -31,50 +31,50 @@
   - Khoảng cách: **2-400 cm**
 - **Sai số**: **±1 cm**
 - **Cách sử dụng**: 
-  - Kết nối vào **GPIO pin D5** (GPIO 5) trên Grove Base Hat
+  - Kết nối vào **GPIO pin D5** (GPIO 5) trên **Grove Base Hat for Raspberry Pi**
   - Sử dụng thư viện `grove.grove_ultrasonic_ranger` để đọc dữ liệu
   - Đọc dữ liệu: `distance_value = ultrasonic_sensor.get_distance()`
   - Giá trị trả về đơn vị cm
 
-#### **LCD Grove LCD 16x2 I2C**
+#### **LCD Grove - LCD 16x2 I2C**
 
 - **Loại**: Grove LCD 16x2 (White on Blue)
 - **Giao tiếp**: I2C Protocol
 - **Kích thước**: 16 cột x 2 dòng
 - **Địa chỉ I2C**: 0x3E (mặc định)
 - **Cách sử dụng**: 
-  - Kết nối vào cổng I2C trên Grove Base Hat
+  - Kết nối vào cổng I2C trên **Grove Base Hat for Raspberry Pi**
   - Sử dụng thư viện `grove.display.jhd1802`
   - Hiển thị cường độ ánh sáng ở dòng 1, khoảng cách ở dòng 2
 
 #### **LED đỏ và vàng**
 
-- **Loại**: Grove LED Module
+- **Loại**: Grove - LED Module
 - **Điện áp hoạt động**: 3.3V - 5V
 - **Giao tiếp**: Digital GPIO
 - **Kết nối**:
-  - **LED đỏ**: GPIO pin D16 (GPIO 16)
-  - **LED vàng**: GPIO pin D18 (GPIO 18)
+  - **LED đỏ**: GPIO pin D16 (GPIO 16) trên **Grove Base Hat for Raspberry Pi**
+  - **LED vàng**: GPIO pin D18 (GPIO 18) trên **Grove Base Hat for Raspberry Pi**
 - **Điều khiển**: 
   - Logic HIGH (1) = LED sáng
   - Logic LOW (0) = LED tắt
 
 #### **Buzzer (Chuông)**
 
-- **Loại**: Grove Buzzer Module
+- **Loại**: Grove - Buzzer Module
 - **Điện áp hoạt động**: 3.3V - 5V
 - **Giao tiếp**: Digital GPIO
-- **Kết nối**: GPIO pin D12 (GPIO 12)
+- **Kết nối**: GPIO pin D12 (GPIO 12) trên **Grove Base Hat for Raspberry Pi**
 - **Điều khiển**: 
   - Logic HIGH (1) = Buzzer kêu
   - Logic LOW (0) = Buzzer tắt
 
 #### **Motor rung (Vibration Motor)**
 
-- **Loại**: Grove Vibration Motor Module
+- **Loại**: Grove - Vibration Motor Module
 - **Điện áp hoạt động**: 3.3V - 5V
 - **Giao tiếp**: Digital GPIO
-- **Kết nối**: GPIO pin D13 (GPIO 13)
+- **Kết nối**: GPIO pin D13 (GPIO 13) trên **Grove Base Hat for Raspberry Pi**
 - **Điều khiển**: 
   - Logic HIGH (1) = Motor rung
   - Logic LOW (0) = Motor tắt
@@ -201,10 +201,10 @@
 
 | Thành phần | Thông số |
 |------------|----------|
-| MCU | Raspberry Pi 3B+/4/Zero W |
-| Cảm biến | Grove Light Sensor (A0) + Grove Ultrasonic Ranger (D5) |
-| Hiển thị | LCD 16x2 I2C |
-| Điều khiển | 2x Grove LED (Đỏ D16, Vàng D18) + Buzzer (D12) + Vibration Motor (D13) |
+| MCU | Raspberry Pi 4 |
+| Cảm biến | Grove - Light Sensor (A0) + Grove - Ultrasonic Ranger (D5) |
+| Hiển thị | Grove - LCD 16x2 I2C |
+| Điều khiển | 2x Grove - LED (Đỏ D16, Vàng D18) + Grove - Buzzer (D12) + Grove - Vibration Motor (D13) |
 | Giao tiếp | HTTP/HTTPS |
 | Kết nối | WiFi |
 | Logging | File CSV |
