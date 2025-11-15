@@ -1,0 +1,244 @@
+[
+    {
+        "id": "http-request-thingspeak",
+        "type": "http request",
+        "name": "ThingSpeak API Request",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "https://api.thingspeak.com/channels/3153408/feeds.json?results=1&api_key=N251PNZ5EG0MWI2Y",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 140,
+        "y": 100,
+        "wires": [
+            [
+                "function-parse-data"
+            ]
+        ]
+    },
+    {
+        "id": "inject-timer",
+        "type": "inject",
+        "name": "Timer 10 giây",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "10",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 140,
+        "y": 180,
+        "wires": [
+            [
+                "http-request-thingspeak"
+            ]
+        ]
+    },
+    {
+        "id": "function-parse-data",
+        "type": "function",
+        "name": "Parse dữ liệu ThingSpeak",
+        "func": "// Parse dữ liệu từ ThingSpeak API response\nif (!msg.payload || !msg.payload.feeds || msg.payload.feeds.length === 0) {\n    return null;\n}\n\nvar latest = msg.payload.feeds[0];\nvar lightValue = parseFloat(latest.field1);\nvar distanceValue = parseFloat(latest.field2);\n\nif (isNaN(lightValue) || isNaN(distanceValue)) {\n    return null;\n}\n\n// Tạo 2 message riêng cho ánh sáng và khoảng cách\nvar msgLight = {\n    payload: lightValue,\n    topic: \"light\",\n    timestamp: latest.created_at\n};\n\nvar msgDistance = {\n    payload: distanceValue,\n    topic: \"distance\",\n    timestamp: latest.created_at\n};\n\nreturn [msgLight, msgDistance];",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 380,
+        "y": 100,
+        "wires": [
+            [
+                "gauge-light",
+                "bar-light",
+                "debug-light"
+            ],
+            [
+                "gauge-distance",
+                "bar-distance",
+                "debug-distance"
+            ]
+        ]
+    },
+    {
+        "id": "gauge-light",
+        "type": "ui_gauge",
+        "name": "Gauge Ánh sáng",
+        "group": "dashboard-group",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Cường độ ánh sáng",
+        "label": "",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 1000,
+        "x": 600,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "gauge-distance",
+        "type": "ui_gauge",
+        "name": "Gauge Khoảng cách",
+        "group": "dashboard-group",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Khoảng cách vật cản",
+        "label": "cm",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 200,
+        "x": 600,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "bar-light",
+        "type": "ui_chart",
+        "name": "Bar Chart Ánh sáng",
+        "group": "dashboard-group",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "label": "Cường độ ánh sáng",
+        "chartType": "bar",
+        "legend": "false",
+        "xformat": "HH:mm:ss",
+        "interpolate": "linear",
+        "nodata": "",
+        "dot": false,
+        "ymin": "0",
+        "ymax": "1000",
+        "removeOlder": 1,
+        "removeOlderPoints": "",
+        "removeOlderUnit": "3600",
+        "cutout": 0,
+        "useOneColor": false,
+        "colors": [
+            "#1f77b4",
+            "#aec7e8",
+            "#ff7f0e",
+            "#2ca02c",
+            "#98df8a",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "useOldStyle": false,
+        "outputs": 1,
+        "x": 600,
+        "y": 220,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "bar-distance",
+        "type": "ui_chart",
+        "name": "Bar Chart Khoảng cách",
+        "group": "dashboard-group",
+        "order": 4,
+        "width": 0,
+        "height": 0,
+        "label": "Khoảng cách vật cản",
+        "chartType": "bar",
+        "legend": "false",
+        "xformat": "HH:mm:ss",
+        "interpolate": "linear",
+        "nodata": "",
+        "dot": false,
+        "ymin": "0",
+        "ymax": "200",
+        "removeOlder": 1,
+        "removeOlderPoints": "",
+        "removeOlderUnit": "3600",
+        "cutout": 0,
+        "useOneColor": false,
+        "colors": [
+            "#ff7f0e",
+            "#ffbb78",
+            "#2ca02c",
+            "#98df8a",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5",
+            "#8c564b"
+        ],
+        "useOldStyle": false,
+        "outputs": 1,
+        "x": 600,
+        "y": 300,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "debug-light",
+        "type": "debug",
+        "name": "Debug Ánh sáng",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 600,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "debug-distance",
+        "type": "debug",
+        "name": "Debug Khoảng cách",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 600,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "dashboard-group",
+        "type": "ui_group",
+        "name": "Giám sát Ánh sáng & Khoảng cách",
+        "tab": "dashboard-tab",
+        "order": 1,
+        "disp": true,
+        "width": "6",
+        "height": "1",
+        "className": ""
+    },
+    {
+        "id": "dashboard-tab",
+        "type": "ui_tab",
+        "name": "Dashboard",
+        "icon": "dashboard",
+        "order": 1,
+        "disabled": false,
+        "hidden": false
+    }
+]
+
